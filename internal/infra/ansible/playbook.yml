@@ -1,0 +1,36 @@
+- hosts: all
+  tasks:
+    - name: Set lowercase variables
+      set_fact:
+        image_name: "ghcr.io/{{ github_repository_owner | lower }}/{{ repo_name | lower }}"
+        repo_name_lower: "{{ repo_name | lower }}"
+
+    - name: Convert JSON secret to env vars
+      set_fact:
+        app_env: "{{ APP_ENV_JSON | from_json }}"
+
+    - name: Log in to GHCR
+      community.docker.docker_login:
+        registry_url: ghcr.io
+        username: "{{ ghcr_user }}"
+        password: "{{ ghcr_token }}"
+
+    - name: Pull latest image
+      ansible.builtin.docker_image:
+        name: "{{ image_name }}"
+        tag: "{{ app_version }}"
+        source: pull
+
+    - name: Stop and remove existing container
+      ansible.builtin.docker_container:
+        name: "{{ repo_name_lower }}"
+        state: absent
+
+    - name: Run container with env vars
+      ansible.builtin.docker_container:
+        name: "{{ repo_name_lower }}"
+        image: "{{ image_name }}:{{ app_version }}"
+        restart_policy: always
+        ports:
+          - "{{ app_env.PORT }}:{{ app_env.PORT }}"
+        env: "{{ app_env }}"

@@ -1,0 +1,140 @@
+name: Build & Deploy
+
+on:
+  push:
+    tags:
+      - "prod-v*"
+      - "dev-v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - id: lower_repo
+        name: Repository to lowercase
+        run: |
+          echo "repository=${GITHUB_REPOSITORY@L}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          provenance: false
+          platforms: linux/amd64
+          tags: ghcr.io/${{ steps.lower_repo.outputs.repository }}:${{ github.ref_name }}
+
+      - name: Delete older images (keep latest 5)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const packageName = '${{ github.event.repository.name }}';
+
+            const perPage = 20;
+            const packages = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+              package_type: 'container',
+              package_name: packageName,
+              per_page: perPage,
+              org: owner,
+            });
+
+            const versions = packages.data;
+            if (versions.length > 5) {
+              const oldVersions = versions.slice(5);
+              for (const version of oldVersions) {
+                console.log(`🗑️ Deleting version: ${version.id}`);
+                await github.rest.packages.deletePackageVersionForOrg({
+                  package_type: 'container',
+                  package_name: packageName,
+                  org: owner,
+                  package_version_id: version.id
+                });
+              }
+            } else {
+              console.log('ℹ️ No old versions to delete');
+            }
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible jq
+
+      - name: SSH setup and configurations
+        shell: bash
+        run: |
+          eval `ssh-agent -s`
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Prepare inventory for Ansible
+        run: echo "${{ secrets.INVENTORY_YML }}" > internal/infra/ansible/inventory.yml
+
+      - name: Normalize JSON env-secret for Ansible
+        id: normalize_json
+        run: |
+          # Write the env-secret to a temporary file to avoid exposing it in logs
+          echo '${{ secrets.APP_ENV_JSON }}' | jq -c . > /tmp/normalized.json
+          echo "json_file=/tmp/normalized.json" >> $GITHUB_OUTPUT
+        env:
+          # Secrets shouldn't be visible in process lists
+          APP_ENV_JSON: ${{ secrets.APP_ENV_JSON }}
+
+      - name: Get tag & environment from current workflow
+        id: get_tag
+        run: |
+          TAG="${{ github.ref_name }}"
+          ENVIRONMENT=$(echo "$TAG" | cut -d'-' -f1)  # prod or dev
+          echo "env=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Run Ansible Playbook
+        shell: bash
+        run: |
+          cd internal/infra/ansible
+
+          NORMALIZED_JSON=$(cat ${{ steps.normalize_json.outputs.json_file }})
+          ansible-playbook -i inventory.yml playbook.yml \
+            -e "github_repository_owner=${{ github.repository_owner }}" \
+            -e "repo_name=${{ github.event.repository.name }}" \
+            -e "app_version=${{ steps.get_tag.outputs.tag }}" \
+            -e "ghcr_token=${{ github.token }}" \
+            -e "ghcr_user=${{ github.actor }}" \
+            -e "APP_ENV_JSON=$NORMALIZED_JSON" \
+            -l ${{ steps.get_tag.outputs.env }}
+          
+          rm -f ${{ steps.normalize_json.outputs.json_file }}

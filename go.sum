@@ -1,0 +1,3 @@
+// This is a dummy go.sum file
+// In a real project, this file would contain checksums of downloaded modules
+// Since this project only uses the Go standard library, it would normally be empty
