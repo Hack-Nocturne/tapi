@@ -1,0 +1,28 @@
+name: Verify pipx & ansible presence
+
+on:
+  workflow_dispatch:  # run manually
+
+jobs:
+  check-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check pipx
+        run: |
+          echo "=== Checking pipx installation ==="
+          if command -v pipx &> /dev/null; then
+            echo "✅ pipx is installed"
+            pipx --version
+          else
+            echo "❌ pipx is NOT installed"
+          fi
+
+      - name: Check ansible
+        run: |
+          echo "=== Checking ansible installation ==="
+          if command -v ansible &> /dev/null; then
+            echo "✅ ansible is installed"
+            ansible --version
+          else
+            echo "❌ ansible is NOT installed"
+          fi
