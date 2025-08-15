@@ -26,3 +26,31 @@ jobs:
           else
             echo "❌ ansible is NOT installed"
           fi
+
+          if command -v ansible-playbook &> /dev/null; then
+            echo "✅ ansible-playbook is installed"
+            ansible-playbook --version
+          else
+            echo "❌ ansible-playbook is NOT installed"
+          fi
+
+          if command -v ansible-galaxy &> /dev/null; then
+            echo "✅ ansible-galaxy is installed"
+            ansible-galaxy --version
+          else
+            echo "❌ ansible-galaxy is NOT installed"
+          fi
+
+          if command -v ansible-lint &> /dev/null; then
+            echo "✅ ansible-lint is installed"
+            ansible-lint --version
+          else
+            echo "❌ ansible-lint is NOT installed"
+          fi
+
+          if command -v ansible-vault &> /dev/null; then
+            echo "✅ ansible-vault is installed"
+            ansible-vault --version
+          else
+            echo "❌ ansible-vault is NOT installed"
+          fi
