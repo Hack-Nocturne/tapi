@@ -20,6 +20,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y python3-passlib
+          pip3 install passlib
 
       - name: Hash password
         id: hash
