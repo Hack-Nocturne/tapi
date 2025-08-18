@@ -19,7 +19,7 @@ jobs:
       - name: Install Ansible
         run: |
           sudo apt update
-          echo "your-string-here" | sha512sum
+          printf "your-string-here" | sha512sum
 
       - name: Hash password
         id: hash
