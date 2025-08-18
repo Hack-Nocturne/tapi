@@ -19,7 +19,7 @@ jobs:
       - name: Install Ansible
         run: |
           sudo apt update
-          sudo apt install -y python-passlib
+          sudo apt install -y python3-passlib
 
       - name: Hash password
         id: hash
