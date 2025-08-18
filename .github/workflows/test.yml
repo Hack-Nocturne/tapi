@@ -19,7 +19,8 @@ jobs:
       - name: Install Ansible
         run: |
           sudo apt update
-          printf "your-string-here" | sha512sum
+          mypasswd=$(openssl passwd -6 'MyPlainTextPassword')
+          echo $mypasswd
 
       - name: Hash password
         id: hash
