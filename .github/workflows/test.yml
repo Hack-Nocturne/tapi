@@ -1,56 +1,31 @@
-name: Verify pipx & ansible presence
+name: Hash Password with Ansible
 
 on:
-  workflow_dispatch:  # run manually
+  workflow_dispatch:
+    inputs:
+      password:
+        description: 'Password to hash'
+        required: true
+        default: 'MySecretPassword123'
 
 jobs:
-  check-tools:
+  hash_password:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check pipx
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Ansible
         run: |
-          echo "=== Checking pipx installation ==="
-          if command -v pipx &> /dev/null; then
-            echo "✅ pipx is installed"
-            pipx --version
-          else
-            echo "❌ pipx is NOT installed"
-          fi
+          sudo apt update
+          sudo apt install -y ansible
 
-      - name: Check ansible
+      - name: Hash password
+        id: hash
         run: |
-          echo "=== Checking ansible installation ==="
-          if command -v ansible &> /dev/null; then
-            echo "✅ ansible is installed"
-            ansible --version
-          else
-            echo "❌ ansible is NOT installed"
-          fi
+          HASHED=$(ansible localhost -m ansible.builtin.debug -a "msg={{ '$' + inputs.password | password_hash('sha512') }}" -c local)
+          echo "hashed_password=$HASHED" >> $GITHUB_ENV
 
-          if command -v ansible-playbook &> /dev/null; then
-            echo "✅ ansible-playbook is installed"
-            ansible-playbook --version
-          else
-            echo "❌ ansible-playbook is NOT installed"
-          fi
-
-          if command -v ansible-galaxy &> /dev/null; then
-            echo "✅ ansible-galaxy is installed"
-            ansible-galaxy --version
-          else
-            echo "❌ ansible-galaxy is NOT installed"
-          fi
-
-          if command -v ansible-lint &> /dev/null; then
-            echo "✅ ansible-lint is installed"
-            ansible-lint --version
-          else
-            echo "❌ ansible-lint is NOT installed"
-          fi
-
-          if command -v ansible-vault &> /dev/null; then
-            echo "✅ ansible-vault is installed"
-            ansible-vault --version
-          else
-            echo "❌ ansible-vault is NOT installed"
-          fi
+      - name: Show hashed password
+        run: echo "Hashed password: ${{ env.hashed_password }}"
