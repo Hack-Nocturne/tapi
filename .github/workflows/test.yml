@@ -23,8 +23,28 @@ jobs:
       - name: Hash password
         id: hash
         run: |
-          HASHED=$(ansible localhost -m ansible.builtin.debug -a "msg={{ '$' + inputs.password | password_hash('sha512') }}" -c local)
+          set -euo pipefail
+
+          PASSWORD="${{ github.event.inputs.password }}"
+          
+          # Run ansible to hash the password
+          HASHED_OUTPUT=$(ansible localhost -m ansible.builtin.debug -a "msg={{ '$' + '${PASSWORD}' | password_hash('sha512') }}" -c local 2>&1) || {
+            echo "Ansible failed! Output:"
+            echo "$HASHED_OUTPUT"
+            exit 1
+          }
+
+          # Extract the hashed password from ansible debug output
+          HASHED=$(echo "$HASHED_OUTPUT" | grep -oP '(?<=\"msg\": \")[^\"]+')
+          
+          if [ -z "$HASHED" ]; then
+            echo "Failed to extract hashed password!"
+            echo "$HASHED_OUTPUT"
+            exit 1
+          fi
+
           echo "hashed_password=$HASHED" >> $GITHUB_ENV
+          echo "Password hashed successfully."
 
       - name: Show hashed password
         run: |
