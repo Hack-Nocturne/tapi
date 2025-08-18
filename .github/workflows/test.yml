@@ -28,4 +28,5 @@ jobs:
           echo "hashed_password=$HASHED" >> $GITHUB_ENV
 
       - name: Show hashed password
-        run: echo "Hashed password: ${{ env.hashed_password }}"
+        run: |
+          echo "Hashed password: ${{ env.hashed_password }}"
