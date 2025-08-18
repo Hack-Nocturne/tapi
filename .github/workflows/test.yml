@@ -19,8 +19,7 @@ jobs:
       - name: Install Ansible
         run: |
           sudo apt update
-          sudo apt install -y python3-passlib
-          pip3 install passlib
+          echo "your-string-here" | sha512sum
 
       - name: Hash password
         id: hash
