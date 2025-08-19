@@ -1,4 +1,5 @@
 - hosts: all
+  gather_facts: no
   tasks:
     - name: Normalize and set variables
       set_fact:
