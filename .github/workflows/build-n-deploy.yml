@@ -121,13 +121,14 @@ jobs:
         working-directory: internal/infra/ansible
         run: |
           echo "Testing connectivity to target hosts..."
-          ansible all -m ping -i inventory.yml
+          export ANSIBLE_DEBUG=1
+          ansible all -m ping -i inventory.yml -vvvv
 
       - name: Run Ansible Playbook
         shell: bash
         run: |
           cd internal/infra/ansible
-
+          export ANSIBLE_DEBUG=1
           NORMALIZED_JSON=$(cat ${{ steps.normalize_json.outputs.json_file }})
           ansible-playbook -i inventory.yml playbook.yml \
             -e "github_repository_owner=${{ github.repository_owner }}" \
@@ -138,5 +139,6 @@ jobs:
             -e "ghcr_user=${{ github.actor }}" \
             -e "APP_ENV_JSON=$NORMALIZED_JSON" \
             -l ${{ steps.get_tag.outputs.env }}
+            -vvvv
           
           rm -f ${{ steps.normalize_json.outputs.json_file }}
