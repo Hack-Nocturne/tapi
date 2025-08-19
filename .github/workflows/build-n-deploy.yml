@@ -97,7 +97,8 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
       - name: Prepare inventory for Ansible
-        run: echo "${{ secrets.INVENTORY_YML }}" > internal/infra/ansible/inventory.yml
+        working-directory: internal/infra/ansible
+        run: echo "${{ secrets.INVENTORY_YML }}" > inventory.yml
 
       - name: Normalize JSON env-secret for Ansible
         id: normalize_json
@@ -124,9 +125,8 @@ jobs:
           ansible all -m ping
 
       - name: Run Ansible Playbook
-        shell: bash
+        working-directory: internal/infra/ansible
         run: |
-          cd internal/infra/ansible
           NORMALIZED_JSON=$(cat ${{ steps.normalize_json.outputs.json_file }})
           ansible-playbook playbook.yml \
             -e "github_repository_owner=${{ github.repository_owner }}" \
