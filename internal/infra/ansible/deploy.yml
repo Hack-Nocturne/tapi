@@ -1,0 +1,14 @@
+- name: Generate .env from literal JSON string
+  template:
+    src: env.j2
+    dest: "{{ ansible_env.HOME }}/.config/{{ repo_name_lower }}.env"
+
+- name: Run deploy script
+  command: >
+    {{ obscured_dir }}/deploy.sh
+    -a {{ repo_name_lower }}
+    -p {{ env_json.PORT }}
+    -v {{ app_version }}
+    -g {{ item.green }}
+    -b {{ item.blue }}
+    -r true
