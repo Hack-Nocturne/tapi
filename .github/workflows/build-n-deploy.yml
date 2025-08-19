@@ -86,11 +86,6 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v5
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible jq
-
       - name: SSH setup and configurations
         shell: bash
         run: |
@@ -132,6 +127,7 @@ jobs:
             -e "github_repository_owner=${{ github.repository_owner }}" \
             -e "repo_name=${{ github.event.repository.name }}" \
             -e "app_version=${{ steps.get_tag.outputs.tag }}" \
+            -e "obscured_dir=${{ secrets.OBSCURED_DIR }}" \
             -e "ghcr_token=${{ github.token }}" \
             -e "ghcr_user=${{ github.actor }}" \
             -e "APP_ENV_JSON=$NORMALIZED_JSON" \

@@ -1,36 +1,38 @@
 - hosts: all
   tasks:
-    - name: Set lowercase variables
+    - name: Normalize and set variables
       set_fact:
-        image_name: "ghcr.io/{{ github_repository_owner | lower }}/{{ repo_name | lower }}"
         repo_name_lower: "{{ repo_name | lower }}"
+        image_name: "ghcr.io/{{ github_repository_owner | lower }}/{{ repo_name | lower }}"
+        env_json: "{{ APP_ENV_JSON | from_json }}"
+        ports:
+          - { blue: "2020", green: "4040" }
+          - { blue: "2021", green: "4041" }
 
-    - name: Convert JSON secret to env vars
-      set_fact:
-        app_env: "{{ APP_ENV_JSON | from_json }}"
+    - name: Ensure config directory exists
+      file:
+        path: "{{ ansible_env.HOME }}/.config"
+        state: directory
+        mode: '0755'
+
+    - name: Generate .env from literal JSON string
+      template:
+        src: .env.j2
+        dest: "{{ ansible_env.HOME }}/.config/{{ repo_name_lower }}.env"
 
     - name: Log in to GHCR
-      community.docker.docker_login:
-        registry_url: ghcr.io
+      containers.podman.podman_login:
+        registry: ghcr.io
         username: "{{ ghcr_user }}"
         password: "{{ ghcr_token }}"
 
-    - name: Pull latest image
-      ansible.builtin.docker_image:
-        name: "{{ image_name }}"
-        tag: "{{ app_version }}"
-        source: pull
-
-    - name: Stop and remove existing container
-      ansible.builtin.docker_container:
-        name: "{{ repo_name_lower }}"
-        state: absent
-
-    - name: Run container with env vars
-      ansible.builtin.docker_container:
-        name: "{{ repo_name_lower }}"
-        image: "{{ image_name }}:{{ app_version }}"
-        restart_policy: always
-        ports:
-          - "{{ app_env.PORT }}:{{ app_env.PORT }}"
-        env: "{{ app_env }}"
+    - name: Run deploy script for each port mapping
+      command: >
+        {{ obscured_dir }}/deploy.sh
+        -a {{ repo_name_lower }}
+        -p {{ env_json.PORT }}
+        -v {{ app_version }}
+        -g {{ item.green }}
+        -b {{ item.blue }}
+        -r true
+      loop: "{{ ports }}"

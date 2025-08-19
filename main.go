@@ -31,8 +31,8 @@ func main() {
 // helloWorldHandler handles the hello world route
 func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	response := map[string]interface{}{
-		"message": "👋 Bye World!",
+	response := map[string]any{
+		"message": "Hey I am v1 🍁",
 		"status":  "success",
 		"path":    r.URL.Path,
 		"method":  r.Method,
@@ -58,7 +58,7 @@ func envHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"environment_variables": envMap,
 		"count":                 len(envMap),
 	}
