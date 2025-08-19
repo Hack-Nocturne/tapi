@@ -1,6 +1,9 @@
 - hosts: all
   gather_facts: no
   tasks:
+    - setup:
+        filter: ansible_env
+
     - name: Normalize and set variables
       set_fact:
         repo_name_lower: "{{ repo_name | lower }}"
