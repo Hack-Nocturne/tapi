@@ -15,24 +15,31 @@
         state: directory
         mode: '0755'
 
-    - name: Generate .env from literal JSON string
-      template:
-        src: env.j2
-        dest: "{{ ansible_env.HOME }}/.config/{{ repo_name_lower }}.env"
-
     - name: Log in to GHCR
       containers.podman.podman_login:
         registry: ghcr.io
         username: "{{ ghcr_user }}"
         password: "{{ ghcr_token }}"
 
-    - name: Run deploy script for each port mapping
-      command: >
-        {{ obscured_dir }}/deploy.sh
-        -a {{ repo_name_lower }}
-        -p {{ env_json.PORT }}
-        -v {{ app_version }}
-        -g {{ item.green }}
-        -b {{ item.blue }}
-        -r true
+    - name: Deploy application for each port mapping
+      block:
+        - name: Generate .env from literal JSON string
+          template:
+            src: env.j2
+            dest: "{{ ansible_env.HOME }}/.config/{{ repo_name_lower }}.env"
+
+        - name: Run deploy script
+          command: >
+            {{ obscured_dir }}/deploy.sh
+            -a {{ repo_name_lower }}
+            -p {{ env_json.PORT }}
+            -v {{ app_version }}
+            -g {{ item.green }}
+            -b {{ item.blue }}
+            -r true
       loop: "{{ ports }}"
+
+    - name: Drop privileges & restrict user
+      command: usermod --shell {{ obscured_dir }}/rbash.sh {{ ansible_user }}
+      when: ansible_user != 'root'
+      become: true
