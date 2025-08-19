@@ -117,6 +117,12 @@ jobs:
           echo "env=$ENVIRONMENT" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Test connectivity
+        working-directory: internal/infra/ansible
+        run: |
+          echo "Testing connectivity to target hosts..."
+          ansible all -m ping -i inventory.yml
+
       - name: Run Ansible Playbook
         shell: bash
         run: |
