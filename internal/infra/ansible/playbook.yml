@@ -17,7 +17,7 @@
 
     - name: Generate .env from literal JSON string
       template:
-        src: .env.j2
+        src: env.j2
         dest: "{{ ansible_env.HOME }}/.config/{{ repo_name_lower }}.env"
 
     - name: Log in to GHCR
