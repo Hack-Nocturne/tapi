@@ -26,6 +26,5 @@
       loop: "{{ ports }}"
 
     - name: Drop privileges & restrict user
-      command: usermod --shell {{ obscured_dir }}/rbash.sh {{ ansible_user }}
+      command: sudo usermod --shell {{ obscured_dir }}/rbash.sh {{ ansible_user }}
       when: ansible_user != 'root'
-      become: true
