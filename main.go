@@ -32,7 +32,7 @@ func main() {
 func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]any{
-		"message": "Hey I am v2 🌿",
+		"message": "Hey I am v1 🪻",
 		"status":  "success",
 		"path":    r.URL.Path,
 		"method":  r.Method,
